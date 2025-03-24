@@ -1,75 +1,91 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { Country } from '@/types';
+import SearchBar from '../components/SearchBar';
+import Header from '../components/Header';
+import CountryCard from '../components/CountryCard';
+import { countryService } from '../services/countryService';
 
 export default function Home() {
   const [countries, setCountries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [region, setRegion] = useState('');
+  const [filterBy, setFilterBy] = useState('name');
 
-  useEffect(() => {
-    const fetchCountries = async () => {
-      try {
-        const response = await axios.get('http://localhost:3001/countries');
-        setCountries(response.data);
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to load countries');
-        setLoading(false);
+  const fetchCountries = async () => {
+    try {
+      setLoading(true);
+      let data;
+      if (region) {
+        data = await countryService.filterCountriesByRegion(region);
+      } else {
+        data = await countryService.getAllCountries();
       }
-    };
+      setCountries(data);
+    } catch (err) {
+      setError('Failed to load countries');
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
     fetchCountries();
-  }, []);
+  }, [region]);
 
-  if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
-  if (error) return <p className="text-red-500">{error}</p>;
 
-  const filteredCountries = countries.filter((country: any) =>
-    country.name.includes(searchTerm)
-  );
+  const fetchFilteredCountries = async () => {
+    try {
+      setLoading(true);
+      const queryParams: { capital?: string; name?: string; region?: string; timezone?: string } = {};
+
+      if (filterBy === 'name') queryParams.name = searchTerm;
+      if (filterBy === 'capital') queryParams.capital = searchTerm;
+      if (filterBy === 'region') queryParams.region = searchTerm;
+      if (filterBy === 'timezone') queryParams.timezone = searchTerm;
+
+      const data = await countryService.searchCountries(queryParams);
+      setCountries(data);
+
+    } catch (err) {
+      setError('Failed to load countries');
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
+    <div className="min-h-screen bg-gray-100">
+    <Header />
     <div className="p-6">
-      {/* Search Input */}
+      <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} filterBy={filterBy} setFilterBy={setFilterBy} onSearch={fetchFilteredCountries}/>
       <div className="mb-4">
-        <label className="block text-gray-700">
-          Search for a Country
-        </label>
-        <input
-          id="search"
-          type="text"
-          placeholder="Enter country name"
-          className="border border-gray-300"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
-
-      {/* Display filtered countries */}
-      <div className="grid grid-cols-4">
-        {filteredCountries.length > 0 ? (
-          filteredCountries.map((country) => (
-            <div key={country.name} className="bg-white rounded-lg shadow-md p-4">
-              {/* Accessing the flag from the 'flag' property */}
-              {country.flag ? (
-                <img
-                  className="w-10 h-10 object-cover"
-                  src={country.flag}
-                  alt={`Flag of ${country.name}`}
-                />
-              ) : (
-                <p className="text-center">No Flag Available</p>
-              )}
-              <div className="mt-2 text-center">
-                <h2>{country.name}</h2>
-                <p>{country.region}</p>
-              </div>
-            </div>
-          ))
+          <label className="block text-gray-700 mb-2">Filter by Region</label>
+          <select
+            className="w-full p-2 border border-gray-300 rounded"
+            value={region}
+            onChange={(e) => setRegion(e.target.value)}
+          >
+            <option value="">All Regions</option>
+            <option value="Africa">Africa</option>
+            <option value="Americas">Americas</option>
+            <option value="Asia">Asia</option>
+            <option value="Europe">Europe</option>
+            <option value="Oceania">Oceania</option>
+            <option value="Antarctic">Antarctic</option>
+          </select>
+        </div>
+      {loading && <p className="text-center">Loading...</p>}
+      {error && <p className="text-center text-red-500">{error}</p>}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        {countries.length > 0 ? (
+          countries.map((country:Country) => <CountryCard key={country.name} country={country} />)
         ) : (
-          <p className="text-gray-500">No countries found.</p>
+          <p className="text-gray-500 text-center col-span-full">No countries found.</p>
         )}
       </div>
     </div>
+  </div>
   );
 };

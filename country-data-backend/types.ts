@@ -6,6 +6,7 @@ export interface Country {
     region: string;
     population: number;
     timezones: any;
+    languages?: Record<string, string>;
   }
   
   export interface Flag {

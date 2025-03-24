@@ -6,7 +6,7 @@ import { Country } from "../../types";
 dotenv.config();
 
 const REST_COUNTRIES_API = process.env.REST_COUNTRIES_API;
-const REQUIRED_FIELDS = `?fields=name,flags,region,population,currencies,timezones,capital`;
+const REQUIRED_FIELDS = `?fields=name,flags,region,population,currencies,timezones,capital,languages`;
 
 // Get all countries
 export const getCountries = async (req: Request, res: Response) => {
@@ -17,6 +17,7 @@ export const getCountries = async (req: Request, res: Response) => {
     name: country.name.common,
     flag: country.flags.svg,
     region: country.region,
+    timezone: country.timezones[0],
   }));
   res.json(countries);
 };
@@ -33,6 +34,7 @@ export const getCountryByCode = async (req: Request, res: Response) => {
     languages: country.languages,
     region: country.region,
     currency: country.currencies,
+    timezone: country.timezones[0],
   });
 };
 
@@ -47,6 +49,7 @@ export const filterCountriesByRegion = async (req: Request, res: Response) => {
     name: country.name.common,
     flag: country.flags.svg,
     region: country.region,
+    timezone: country.timezones[0],
   }));
   res.json(countries);
 };
@@ -87,7 +90,22 @@ export const searchCountries = async (req: Request, res: Response) => {
           country.timezones.includes(timezone)
       );
     }
-    res.json(countries);
+    const filteredCountries = countries.map((country: Country) => ({
+      name: country.name.common,
+      capital: country.capital ? country.capital[0] : 'N/A',
+      flag: country.flags.svg,
+      population: country.population,
+      region: country.region,
+      timezone: country.timezones[0],
+      languages: country.languages ? Object.values(country.languages).join(', ') : 'N/A',
+      currencies: country.currencies 
+        ? Object.values(country.currencies)
+            .map((currency) => `${currency.name} (${currency.symbol})`)
+            .join(', ')
+        : 'N/A',
+    }));
+    
+    res.json(filteredCountries);
   } catch (error) {
     console.error("Error fetching country data:", error);
     res
