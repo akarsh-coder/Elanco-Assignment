@@ -4,7 +4,7 @@ import { getCountries, getCountryByCode, filterCountriesByRegion, searchCountrie
 const router = express.Router();
 
 router.get('/', getCountries);
-router.get('/:code', getCountryByCode);
+router.get('/code/:code', getCountryByCode);
 router.get('/region/:region', filterCountriesByRegion);
 router.get('/search', searchCountries);
 
